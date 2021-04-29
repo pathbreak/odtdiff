@@ -40,6 +40,76 @@ easier.
 + Side-by-side or horizontal diff visualizations
 
 
+## Examples
+
+** Compare two ODT files and show differences side-by-side **
+
+```
+odtdiff test.odt test2.odt
+```
+
+![side by side diff](gallery/side-by-side.png)
+
+** Compare two ODT files and show differences vertically **
+
+```
+odtdiff --vdiff test.odt test2.odt
+```
+
+![vertical diff](gallery/vdiff.png)
+
+This `git log` for `test.odt` in this repo will be used in following examples:
+
+```
+
+$ git log --oneline test.odt
+41613cc (HEAD -> main) test.odt third commit
+5330895 test.odt second commit
+7b4b52e test.odt first commit
+
+```
+
+** Compare ODT versions in git - latest two versions HEAD and HEAD~1 **
+
+```
+odtdiff --git test.odt
+```
+
+![diff latest two versions in git](gallery/git-no-versions.png)
+
+
+** Compare ODT versions in git - any two versions by SHA1 revisions **
+
+```
+odtdiff --git --ver HEAD 7b4b52e test.odt
+```
+
+![diff any two versions in git](gallery/git-head-vs-first.png)
+
+
+** Compare ODT versions in git - any two versions by SHA1 revisions **
+
+```
+odtdiff --git --ver 5330895 7b4b52e test.odt
+```
+
+![diff any two versions in git](gallery/git-second-vs-first.png)
+
+
+** While comparing ODT versions in git, create them as separate files for easy merging using LibreOfficer Writer **
+
+Use `--create` option:
+
+```
+odtdiff --git --ver 5330895 7b4b52e --create test.odt
+```
+
+![create versions as separate files for merging](gallery/create-versions.png)
+
+
+
+
+
 ## How it works
 
 1. It converts ODT files or versions to TXT or HTML files using "libreoffice" executable's
@@ -76,10 +146,11 @@ sudo python3 -m pip install colorama
 
 ```
 
-## Installation on Linux:
+## Installation on any Linux distros:
 
-1. `git clone` this repo - https://github.com/pathbreak/odtdiff - somewhere 
-   or alternatively, download and extract the [repo's zip archive](https://github.com/pathbreak/odtdiff/archive/refs/heads/main.zip).
+1. `git clone` this repo somewhere - https://github.com/pathbreak/odtdiff.
+   
+   Or alternatively, download and extract the [repo's zip archive](https://github.com/pathbreak/odtdiff/archive/refs/heads/main.zip).
    
    ```
    cd $HOME
@@ -102,12 +173,13 @@ sudo python3 -m pip install colorama
     if [ -d "$HOME/.local/bin" ] ; then
         PATH="$HOME/.local/bin:$PATH"
     fi
-
+    ```
 
 ## Installation on other OSes
 
-1. `git clone` this repo - https://github.com/pathbreak/odtdiff - somewhere 
-   or alternatively, download and extract the [repo's zip archive](https://github.com/pathbreak/odtdiff/archive/refs/heads/main.zip).
+1. `git clone` this repo somewhere : https://github.com/pathbreak/odtdiff.
+   
+   Or alternatively, download and extract the [repo's zip archive](https://github.com/pathbreak/odtdiff/archive/refs/heads/main.zip).
    
 2. Ensure that 'odtdiff' is added to PATH.
 
@@ -143,6 +215,7 @@ optional arguments:
   --html                Use HTML diff instead of TXT
 
 ```
+
 
 ## License
 
