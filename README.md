@@ -62,7 +62,7 @@ odtdiff --vdiff test.odt test2.odt
 ![vertical diff](gallery/vdiff.png)
 
 
-### Compare ODT versions in git - latest two versions HEAD and HEAD~1
+### Compare latest two versions of ODT in git
 
 This `git log` for `test.odt` in this repo will be used in following examples:
 
@@ -82,7 +82,7 @@ odtdiff --git test.odt
 ![diff latest two versions in git](gallery/git-no-versions.png)
 
 
-### Compare ODT versions in git - any two versions by SHA1 revisions
+### Compare any two versions of ODT by SHA1 revisions 
 
 ```
 odtdiff --git --ver HEAD 7b4b52e test.odt
@@ -93,7 +93,7 @@ odtdiff --git --ver HEAD 7b4b52e test.odt
 
 
 
-### Compare ODT versions in git - any two versions by SHA1 revisions
+### Compare any two versions of ODT by SHA1 revisions 
 
 ```
 odtdiff --git --ver 5330895 7b4b52e test.odt
