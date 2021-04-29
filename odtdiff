@@ -1,0 +1,313 @@
+#!/usr/bin/env python3
+
+# Diffs 2 ODT files through their TXT or HTML format copies.
+
+import argparse
+import sys
+import subprocess
+import tempfile
+import os
+import os.path
+
+import colorama as C
+
+def main():
+    if sys.argv is None or len(sys.argv) <= 1:
+        parse_args(print_help=True)
+        return 0
+
+    args = parse_args()
+
+    # IMPORTANT Note on filenames:
+    # libreoffice --convert has a problem : if the two files
+    # have same base name but different directories, it'll use the
+    # same output filename for both and the 2nd conversion will end up
+    # clobbering the first one. This results in A/X.odt and B/X.odt showing
+    # no differences at all.
+    # To prevent this, create a separate output temporary dir for each file.
+    
+    file1 = args.file1    
+    file2 = args.file2
+    file1_out_name = None
+    file2_out_name = None
+    
+    files_to_delete = []
+    temp_files_to_delete = []
+    temp_dirs_to_delete = []
+    
+    left_version = None
+    right_version = None
+
+    if args.git:
+        if args.ver:
+            # Use given versions. If either of them is 'CURRENT', the file is used as it is,
+            # otherwise use git show to extract specified version.
+            left_version = args.ver[0]
+            right_version = args.ver[1]
+            
+            if left_version != 'CURRENT':
+                left_file, left_filename = _extract_version(args.file1, left_version, args.create)
+                if not args.create:
+                    temp_files_to_delete.append(left_file)
+                file1 = left_filename
+            else:
+                file1 = args.file1
+                
+            if right_version != 'CURRENT':
+                right_file, right_filename = _extract_version(args.file1, right_version, args.create)
+                if not args.create:
+                    temp_files_to_delete.append(right_file)
+                file2 = right_filename
+            else:
+                file2 = args.file1
+                
+        else:
+            
+            # Extract the "previous version" of the file using 'git show'.
+            # The problem is that if the file has no uncommitted changes, current version is the file itself and
+            # "previous version" is HEAD~1. 
+            # But if it has uncommitted changes, current version is still the file itself, but "previous version"
+            # is HEAD, not HEAD~1.
+            # So we need to detect first if it has uncommitted changes using 'git status --porcelain'.
+            
+            p = subprocess.run([
+                "git", 
+                "status", 
+                "--porcelain",
+                args.file1
+                ], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                
+            git_show_output = p.stdout.decode('utf8').strip()
+            
+            # If git status output did not include the file, it has no changes
+            # which means left-version should be HEAD~1 because current version is HEAD.
+            # But if it contained the file, it has uncommitted changes, which
+            # means left-version should be HEAD because current version is uncommitted local file.
+            left_version, right_version = ('HEAD~1','HEAD') if len(git_show_output) == 0 else ('HEAD','Local')
+            
+            left_file, left_filename = _extract_version(args.file1, left_version, args.create)
+            if not args.create:
+                temp_files_to_delete.append(left_file)
+            file1 = left_filename
+            
+            file2 = args.file1
+
+    outdir1 = tempfile.TemporaryDirectory()
+    outdir2 = tempfile.TemporaryDirectory()
+    
+    temp_dirs_to_delete = [outdir1, outdir2]
+    
+    out_fmt = "txt" if not args.html else "html"
+    
+    file1_out_name = os.path.join(outdir1.name, os.path.splitext(os.path.basename(file1))[0] + '.' + out_fmt)
+    file2_out_name = os.path.join(outdir2.name, os.path.splitext(os.path.basename(file2))[0] + '.' + out_fmt)
+    
+    files_to_delete = [file1_out_name, file2_out_name]
+    
+    print('Convert {} to {}'.format(file1, outdir1.name))
+    p1 = subprocess.run([
+            "libreoffice", 
+            "--convert-to", 
+            "txt" if not args.html else "html",
+            "--outdir",
+            outdir1.name,
+            file1
+            ], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    
+    is_error = (p1.returncode != 0)
+    if not os.path.exists(file1_out_name):
+        print('ERROR: Unable to convert %s to %s' % (file1, out_fmt.upper()))
+        is_error = True
+    if is_error:
+        print('Libreoffice Output:ret=', p1.returncode, 'out=',p1.stdout.decode('utf8'), 
+            '\nerr=\n',p1.stderr.decode('utf8'))
+        
+        _delete_output_files(files_to_delete, temp_files_to_delete, temp_dirs_to_delete)
+        
+        return 2
+    
+    print('Convert {} to {}'.format(file2, outdir2.name))
+    p2 = subprocess.run([
+            "libreoffice", 
+            "--convert-to", 
+            "txt" if not args.html else "html",
+            "--outdir",
+            outdir2.name,
+            file2
+            ], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    
+    is_error = (p2.returncode != 0)
+    if not os.path.exists(file2_out_name):
+        print('ERROR: Unable to convert %s to %s' % (file2, out_fmt.upper()))
+        is_error = True
+    if is_error:
+        print('Libreoffice Output:ret=', p2.returncode, 'out=',p2.stdout.decode('utf8'), 
+            '\nerr=\n',p2.stderr.decode('utf8'))
+        
+        _delete_output_files(files_to_delete, temp_files_to_delete, temp_dirs_to_delete)
+        
+        return 2
+
+
+    if args.git:
+        print("DIFF: '%s' -> %s vs %s" % (args.file1, left_version, right_version))
+    else:
+        print("DIFF: '%s' vs '%s'" % (args.file1, args.file2))
+    print('\n\n\n')
+    
+    cmd_line = [
+            "diff",
+            "-t",  # expand tabs to spaces 
+            "--color=always",
+            file1_out_name, 
+            file2_out_name
+        ]
+    if not args.vdiff:
+        cmd_line.insert(1, '-y') # for side-by-side output
+        
+    p = subprocess.run(cmd_line, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        
+    diffs = p.stdout.decode('utf8')
+    if len(diffs) == 0:
+        print("No differences")
+    else:
+        print(diffs)
+        '''
+        # Custom color highlighting. However, diff --color=always does a 
+        # better job anyway.
+        if not args.vdiff:
+            for line in diffs.splitlines():
+                #if ' <' in line or ' >' in line:
+                if (len(line)>2 and line[-2:] == ' <') or (len(line)>=65 and line[63:65] in [' >',' |']):
+                #if len(line)>62 and line[62] == '>','<']:
+                    print(C.Style.BRIGHT + C.Fore.YELLOW + line + C.Style.RESET_ALL)
+                else:
+                    print(line)
+        else:
+            for line in diffs.splitlines():
+                if line=='---':
+                    print('\n'+C.Style.BRIGHT + C.Fore.RED + line + C.Style.RESET_ALL)
+                    
+                elif len(line)>0 and line[0] not in ['>','<']:
+                    print('\n'+C.Style.BRIGHT + C.Fore.YELLOW + line + C.Style.RESET_ALL)
+                    
+                else:
+                    print(line)
+        '''
+        
+    _delete_output_files(files_to_delete, temp_files_to_delete, temp_dirs_to_delete)
+    
+    return 0
+    
+
+
+def _extract_version(filename, version, create):
+    # Extract a specified version of a file either to a temporary location or to current
+    # directory if --create is specified.
+    #
+    # Uses git show.
+    #
+    # Returns : Tuple of (file, filename). "file" is None if --create=true otherwise it's the NamedTemporaryFile
+    
+    output_version_file = None
+    output_version_filename = None
+
+    if create:
+        base_name, ext = os.path.splitext(filename)
+        output_version_filename = base_name + '-' + version + ext
+    else:
+        output_version_file = tempfile.NamedTemporaryFile()
+        output_version_filename = output_version_file.name
+
+    p = subprocess.run(
+        "git show " + version + ":'" + filename + "' > '" + output_version_filename + "'"
+        , shell=True)
+    if p.returncode == 128:
+        raise RuntimeError("ERROR: Invalid version name " + version)
+
+    print("Copied '%s' version %s to %s" % (filename, version, output_version_filename))
+    return (output_version_file, output_version_filename)
+
+
+
+def _delete_output_files(files_to_delete, temp_files_to_delete, temp_dirs_to_delete):
+    for f in files_to_delete:
+        if f is not None and os.path.exists(f):
+            os.remove(f)
+    
+    for f in temp_files_to_delete:
+        if f is not None and os.path.exists(f.name):
+            f.close()
+            
+    for d in temp_dirs_to_delete:
+        if d is not None and os.path.exists(d.name):
+            d.cleanup()
+
+
+
+
+
+def parse_args(print_help=False):
+    argp = argparse.ArgumentParser(description='Compare two LibreOffice Writer files or two git versions of same file.')
+    f1 = argp.add_argument("file1", metavar="ODT-FILE1", help="First Writer file")
+    argp.add_argument("file2", nargs='?', metavar="ODT-FILE2", help="Second Writer file. " + 
+        "\nRequired if comparing two files instead of git versions.")
+    
+    argp.add_argument("--git", action='store_true', help="Compare a git-tracked file's current contents with its previous version")
+
+    argp.add_argument("--ver", required=False, nargs=2, metavar="VERSION", help="Specify the versions to diff."
+        + "If not specified, current and previous version are used. These are passed to git show.\n"
+        + "examples: HEAD~2, HEAD~1, HEAD, CURRENT, <commit hash>")
+    
+    argp.add_argument("--create", action='store_true', help="Create the specified versions as separate files suffixed"
+        + " by their versions.")
+    
+    argp.add_argument("--vdiff", action='store_true', help="Use vertical diff instead of side-by-side")
+    
+    argp.add_argument("--html", action='store_true', help="Use HTML diff instead of TXT")
+    
+    if print_help:
+        argp.print_help()
+        return None
+        
+    args = argp.parse_args()
+    
+    # Validations:
+    if args.file1 is None:
+        raise ValueError('ERROR: ODT-FILE1 is required argument')
+    if not os.path.exists(args.file1):
+        raise ValueError('ERROR: %s not found' % (args.file1))
+
+    
+    if not args.git:
+        if args.file2 is None:
+            raise ValueError('ERROR: ODT-FILE2 is required argument')
+        if not os.path.exists(args.file2):
+            raise ValueError('ERROR: %s not found' % (args.file2))
+            
+        if args.ver is not None:
+            print("WARNING: --ver versions are used only when --git is specified")
+
+        if args.create:
+            print("WARNING: --create is used only when --git is specified")
+
+    else:
+        if args.file2 is not None:
+            raise ValueError('ERROR: ODT-FILE2 should not be specified with --git')
+
+    return args
+
+
+
+
+
+
+if __name__ == '__main__':
+    C.init()
+    
+    ret = main()
+
+    C.deinit()
+    
+    sys.exit(ret)
+
