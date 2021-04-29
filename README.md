@@ -42,7 +42,7 @@ easier.
 
 ## Examples
 
-** Compare two ODT files and show differences side-by-side **
+### Compare two ODT files and show differences side-by-side
 
 ```
 odtdiff test.odt test2.odt
@@ -50,13 +50,19 @@ odtdiff test.odt test2.odt
 
 ![side by side diff](gallery/side-by-side.png)
 
-** Compare two ODT files and show differences vertically **
+
+
+
+### Compare two ODT files and show differences vertically
 
 ```
 odtdiff --vdiff test.odt test2.odt
 ```
 
 ![vertical diff](gallery/vdiff.png)
+
+
+### Compare ODT versions in git - latest two versions HEAD and HEAD~1
 
 This `git log` for `test.odt` in this repo will be used in following examples:
 
@@ -69,8 +75,6 @@ $ git log --oneline test.odt
 
 ```
 
-** Compare ODT versions in git - latest two versions HEAD and HEAD~1 **
-
 ```
 odtdiff --git test.odt
 ```
@@ -78,7 +82,7 @@ odtdiff --git test.odt
 ![diff latest two versions in git](gallery/git-no-versions.png)
 
 
-** Compare ODT versions in git - any two versions by SHA1 revisions **
+### Compare ODT versions in git - any two versions by SHA1 revisions
 
 ```
 odtdiff --git --ver HEAD 7b4b52e test.odt
@@ -87,7 +91,9 @@ odtdiff --git --ver HEAD 7b4b52e test.odt
 ![diff any two versions in git](gallery/git-head-vs-first.png)
 
 
-** Compare ODT versions in git - any two versions by SHA1 revisions **
+
+
+### Compare ODT versions in git - any two versions by SHA1 revisions
 
 ```
 odtdiff --git --ver 5330895 7b4b52e test.odt
@@ -96,7 +102,9 @@ odtdiff --git --ver 5330895 7b4b52e test.odt
 ![diff any two versions in git](gallery/git-second-vs-first.png)
 
 
-** While comparing ODT versions in git, create them as separate files for easy merging using LibreOfficer Writer **
+
+
+### Create versions as separate files for easy merging using Writer
 
 Use `--create` option:
 
