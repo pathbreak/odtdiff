@@ -63,7 +63,7 @@ odtdiff --vdiff test.odt test2.odt
 
 
 
-### 3. Compare two ODT files as HTML and show differences vertically
+### 3. Compare two ODT files as HTML
 
 ```
 odtdiff --html test.odt test2.odt
