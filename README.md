@@ -62,6 +62,17 @@ odtdiff --vdiff test.odt test2.odt
 ![vertical diff](gallery/vdiff.png)
 
 
+
+### Compare two ODT files as HTML and show differences vertically
+
+```
+odtdiff --html test.odt test2.odt
+```
+
+![HTML diff](gallery/html.png)
+
+
+
 ### Compare latest two versions of ODT in git
 
 This `git log` for `test.odt` in this repo will be used in following examples:
