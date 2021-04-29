@@ -42,7 +42,7 @@ easier.
 
 ## Examples
 
-### Compare two ODT files and show differences side-by-side
+### 1. Compare two ODT files and show differences side-by-side
 
 ```
 odtdiff test.odt test2.odt
@@ -53,7 +53,7 @@ odtdiff test.odt test2.odt
 
 
 
-### Compare two ODT files and show differences vertically
+### 2. Compare two ODT files and show differences vertically
 
 ```
 odtdiff --vdiff test.odt test2.odt
@@ -63,7 +63,7 @@ odtdiff --vdiff test.odt test2.odt
 
 
 
-### Compare two ODT files as HTML and show differences vertically
+### 3. Compare two ODT files as HTML and show differences vertically
 
 ```
 odtdiff --html test.odt test2.odt
@@ -73,7 +73,7 @@ odtdiff --html test.odt test2.odt
 
 
 
-### Compare latest two versions of ODT in git
+### 4. Compare latest two versions of ODT in git
 
 This `git log` for `test.odt` in this repo will be used in following examples:
 
@@ -93,7 +93,7 @@ odtdiff --git test.odt
 ![diff latest two versions in git](gallery/git-no-versions.png)
 
 
-### Compare any two versions of ODT by SHA1 revisions 
+### 5. Compare any two versions of ODT by SHA1 revisions 
 
 ```
 odtdiff --git --ver HEAD 7b4b52e test.odt
@@ -104,7 +104,7 @@ odtdiff --git --ver HEAD 7b4b52e test.odt
 
 
 
-### Compare any two versions of ODT by SHA1 revisions 
+### 6. Compare any two versions of ODT by SHA1 revisions 
 
 ```
 odtdiff --git --ver 5330895 7b4b52e test.odt
@@ -115,7 +115,7 @@ odtdiff --git --ver 5330895 7b4b52e test.odt
 
 
 
-### Create versions as separate files for easy merging using Writer
+### 7. Create versions as separate files for easy merging using Writer
 
 Use `--create` option:
 
