@@ -231,13 +231,22 @@ def _extract_version(filename, version, create):
         output_version_file = tempfile.NamedTemporaryFile()
         output_version_filename = output_version_file.name
 
+    # 'git show <file>' mandatorily requires a directory path in the file even if it's just './'. 
+    # Without it, it throws error message:
+    #   fatal: path 'technical-writing/TheWriterFinder/scalr/11-ctxrecommender/article11-ctxrecommender.odt' exists, 
+    #   but not 'article11-ctxrecommender.odt'
+    #   hint: Did you mean 'HEAD:technical-writing/TheWriterFinder/scalr/11-ctxrecommender/article11-ctxrecommender.odt' 
+    #   aka 'HEAD:./article11-ctxrecommender.odt'?
+    filename_with_path = os.path.join('.', filename) if not os.path.dirname(filename) else filename
+    
     p = subprocess.run(
-        "git show " + version + ":'" + filename + "' > '" + output_version_filename + "'"
+        "git show " + version + ":'" + filename_with_path + "' > '" + output_version_filename + "'"
         , shell=True)
+        
     if p.returncode == 128:
         raise RuntimeError("ERROR: Invalid version name " + version)
 
-    print("Copied '%s' version %s to %s" % (filename, version, output_version_filename))
+    print("Copied '%s' version %s to %s" % (filename_with_path, version, output_version_filename))
     return (output_version_file, output_version_filename)
 
 
